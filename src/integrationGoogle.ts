@@ -6,7 +6,7 @@ import { FirebotParameterCategories, FirebotParams } from "@crowbartools/firebot
 import { AvailableItemsVariable } from "./types";
 const fs = require('fs');
 const axios = require("axios").default;
-import { initLogger, logger } from "./logger";
+import { logger } from "./logger";
 
 let items: string[] = [];
 export type IntegrationDefinition<
@@ -57,6 +57,7 @@ export let secret: client = {
     id: "",
     secret: "",
 }
+
 let scriptModules: ScriptModules;
 export function setScriptModules(modules: ScriptModules){
     scriptModules = modules
@@ -167,7 +168,6 @@ export async function addYoutubeListItem(accessToken: any, playlistId: any, item
     return null;
 };
 
-
 export async function youtubeGetPlayLists(accessToken: any): Promise<{
     itemId: string,
     playlistId: string
@@ -187,19 +187,11 @@ export async function youtubeGetPlayLists(accessToken: any): Promise<{
         return null
     }
 };
-export async function youtubeIsConnected(accessToken: any): Promise<boolean> {
 
-    try {
-        
+export async function youtubeIsConnected(accessToken: any): Promise<boolean> {
         const headers = { 'Authorization': 'Bearer ' + accessToken }; // auth header with bearer token
-        let response = await (await fetch('https://www.googleapis.com/youtube/v3/playlists?part=snippet,id&mine=true', { headers })).json();
-        logger.error("youtubeREPLY: ", response)
-        return true;
-    } catch (error) {
-        logger.error("Failed to get playlists from youtube", error.message);
-        logger.error("Failed to get playlists from youtube", error.code);
-        return false
-    }
+        let res = await fetch('https://www.googleapis.com/youtube/v3/playlists?part=snippet,id&mine=true', { headers });
+        return res.ok; 
 };
 
 class YoutubeIntegration extends EventEmitter {
@@ -209,11 +201,9 @@ class YoutubeIntegration extends EventEmitter {
 
     constructor() {
         super();
-        debugger;
         this.connected = false;
         this.definition = genDef()
         this.integrationManager = scriptModules.integrationManager
-
     }
 
     init() {}
@@ -263,7 +253,6 @@ class YoutubeIntegration extends EventEmitter {
     // Doing this here because of a bug in Firebot where it isn't refreshing automatically
     async refreshToken(): Promise<string> {
         try {
-            debugger;
             const auth = this.auth;
             // @ts-ignore
             const authProvider = this.definition.authProviderDetails;
@@ -286,7 +275,6 @@ class YoutubeIntegration extends EventEmitter {
             logger.error("Unable to refresh youTube token", error.message);
             logger.error("Unable to refresh youTube token", error.code);
         }
-
         return;
     }
 }

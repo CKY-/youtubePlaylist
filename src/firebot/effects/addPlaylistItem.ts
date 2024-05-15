@@ -25,16 +25,15 @@ export const addYoutubeListItemEffect: Firebot.EffectType<{
     * You can alternatively supply a url to a html file via optionTemplateUrl
     */
     optionsTemplate: `
-        <eos-container header="Song Id">
-            <p class="muted">this is the song you want to add</p>
-            <input ng-model="effect.itemId" type="text" class="form-control" id="chat-text-setting" placeholder="Enter Song ID" menu-position="under" replace-variables/>
-        </eos-container>
-
         <eos-container header="Play List" pad-top="true">
             <p class="muted">This is the playlist you want to add the song to</p>
             <input ng-model="effect.playlistId" type="text" class="form-control" id="chat-text-setting" placeholder="Enter Playlist" replace-variables/>
         </eos-container>
 
+        <eos-container header="Song Id">
+            <p class="muted">this is the song you want to add</p>
+            <input ng-model="effect.itemId" type="text" class="form-control" id="chat-text-setting" placeholder="Enter Song ID" menu-position="under" replace-variables/>
+        </eos-container>
     `,
     /**
     * The controller for the front end Options

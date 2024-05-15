@@ -14,8 +14,6 @@ const script: Firebot.CustomScript<Params> = {
   getScriptManifest: () => {
     return {
       name: "youtube Playlist",
-
-
       description: "youtubePlaylist you must specify localhost as the redirect URI",
       author: "CKY",
       version: "1.0",
@@ -42,7 +40,6 @@ const script: Firebot.CustomScript<Params> = {
       parameters = params;
   },
   run: async (runRequest) => { 
-    debugger;
     initLogger(runRequest.modules.logger);
     logger.info(runRequest.parameters.clientId);
     logger.info(runRequest.parameters.clientSecret);
