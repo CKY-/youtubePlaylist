@@ -77,10 +77,6 @@ export function genDef(): IntegrationDefinition {
             redirectUriHost: "localhost",
             client: secret,
             auth: {
-                /* 
-                    https://accounts.google.com/o/oauth2/v2/auth?scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fyoutube.readonly&
-                    access_type=offline&redirect_uri=http%3A%2F%2Flocalhost%2Foauth2callback&response_type=code&client_id=CLIENT_ID
-                */
                 type: 'code',
                 authorizeHost: 'https://accounts.google.com',
                 tokenHost: "https://oauth2.googleapis.com",
@@ -220,10 +216,7 @@ class YoutubeIntegration extends EventEmitter {
 
     }
 
-    init() {
-        // slEventHandler.registerEvents();
-        // slEffectsLoader.registerEffects();
-    }
+    init() {}
 
     async connect(integrationData: any) {
         const { auth } = integrationData;
@@ -255,22 +248,18 @@ class YoutubeIntegration extends EventEmitter {
         logger.error('InSide Link', this.definition.id);
         logger.error('data: ', auth);
 
+        /*
         let token = auth?.access_token
         if (await youtubeIsConnected(token) !== true) {
             token = await this.refreshToken();
         }
         const itemsList = await getYoutubeListItems(token, "PLyg0JJEOdlaibF4jV6JzMKQ0FcYXee0oj");
-        logger.error('data: ', itemsList);
-    }
-
-    unlink() {
-        /*
-        if (this._socket) {
-            this._socket.close();
-        }
+        logger.error('data: ', itemsList); 
         */
     }
 
+    unlink() {}
+    
     // Doing this here because of a bug in Firebot where it isn't refreshing automatically
     async refreshToken(): Promise<string> {
         try {
@@ -280,7 +269,7 @@ class YoutubeIntegration extends EventEmitter {
             const authProvider = this.definition.authProviderDetails;
 
             if (auth != null) {
-                const url = `${authProvider.auth.tokenHost}${authProvider.auth.tokenPath}?client_id=${authProvider.client.id}&client_secret=${authProvider.client.secret}&grant_type=refresh_token&refresh_token=${auth.refresh_token}`;//&scope=${authProvider.scopes}`;
+                const url = `${authProvider.auth.tokenHost}${authProvider.auth.tokenPath}?client_id=${authProvider.client.id}&client_secret=${authProvider.client.secret}&grant_type=refresh_token&refresh_token=${auth.refresh_token}`;
                 const response = await axios.post(url);
 
                 if (response.status === 200) {
