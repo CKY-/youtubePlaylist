@@ -1,5 +1,5 @@
 import { Firebot, ScriptModules } from "@crowbartools/firebot-custom-scripts-types";
-import { genDef, integration, secret } from "./integrationSpotafi";
+import { genDef, genIntegration, integration, secret, setScriptModules } from "./integrationGoogle";
 import { initLogger, logger } from "./logger";
 import { setupFrontendListeners } from "./firebot/communicator";
 import { getYoutubeListItemsVariable } from "./firebot/variables/playListItems";
@@ -26,13 +26,13 @@ const script: Firebot.CustomScript<Params> = {
     return {
       clientId: {
         type: "string",
-        default: "934afadcfafc4aa8bf4e7501ca493130",
+        default: "",
         description: "clientId",
         secondaryDescription: "Enter a client id here",
       },
       clientSecret: {
         type: "string",
-        default: "8523a9bfe24d432d9fad049e43717c75",
+        default: "",
         description: "clientSecret",
         secondaryDescription: "Enter a client secret here",
       },
@@ -42,24 +42,27 @@ const script: Firebot.CustomScript<Params> = {
       parameters = params;
   },
   run: async (runRequest) => { 
+    debugger;
     initLogger(runRequest.modules.logger);
     logger.info(runRequest.parameters.clientId);
     logger.info(runRequest.parameters.clientSecret);
     parameters = runRequest.parameters;
     modules = runRequest.modules;
-
-    secret.id = runRequest.parameters.clientId;
-    secret.secret = runRequest.parameters.clientSecret;
-    let definition = genDef();
-   
     const {
       effectManager,
       frontendCommunicator,
-      replaceVariableManager
+      replaceVariableManager,
+      integrationManager
     } = modules;
+    secret.id = runRequest.parameters.clientId;
+    secret.secret = runRequest.parameters.clientSecret;
+    setScriptModules(modules);
+    let definition = genDef();
+    genIntegration();
 
     setupFrontendListeners(frontendCommunicator);
-    modules.integrationManager.registerIntegration({ definition, integration });
+    integrationManager.registerIntegration({ definition, integration });
+    
     replaceVariableManager.registerReplaceVariable(getYoutubeListItemsVariable);
     effectManager.registerEffect(addYoutubeListItemEffect);
   },

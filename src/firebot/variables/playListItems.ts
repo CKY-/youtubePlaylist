@@ -1,6 +1,5 @@
 import { ReplaceVariable } from "@crowbartools/firebot-custom-scripts-types/types/modules/replace-variable-manager";
-import { RunRequest } from "@crowbartools/firebot-custom-scripts-types";
-import { getYoutubeListItems, integration } from "../../integrationGoogle";
+import { getYoutubeListItems } from "../../integrationGoogle";
 import { modules } from "../../main";
 
 export const getYoutubeListItemsVariable: ReplaceVariable = {

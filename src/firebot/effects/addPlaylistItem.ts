@@ -1,6 +1,6 @@
 "use strict";
 import { Firebot } from "@crowbartools/firebot-custom-scripts-types";
-import { addYoutubeListItem, integration } from "../../integrationGoogle";
+import { addYoutubeListItem } from "../../integrationGoogle";
 import { modules } from "../../main";
 /**
 * The Trigger Hotkey Effect
@@ -19,6 +19,7 @@ export const addYoutubeListItemEffect: Firebot.EffectType<{
         icon: "fad fa-keyboard",
         categories: ["common"],
     },
+
     /**
     * The HTML template for the Options view (ie options when effect is added to something such as a button.
     * You can alternatively supply a url to a html file via optionTemplateUrl
@@ -42,6 +43,7 @@ export const addYoutubeListItemEffect: Firebot.EffectType<{
     optionsController: ($scope: any, backendCommunicator: any, $q: any) => {
 
     },
+
     /**
     * When the effect is triggered by something
     * Used to validate fields in the option template.
@@ -56,6 +58,7 @@ export const addYoutubeListItemEffect: Firebot.EffectType<{
         }
         return errors;
     },
+
     /**
     * When the effect is triggered by something
     */
