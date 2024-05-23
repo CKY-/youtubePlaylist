@@ -3,12 +3,13 @@ import {
 } from "@crowbartools/firebot-custom-scripts-types";
 const EventEmitter = require("events");
 import { FirebotParameterCategories, FirebotParams } from "@crowbartools/firebot-custom-scripts-types/types/modules/firebot-parameters";
-import { AvailableItemsVariable } from "./types";
-const fs = require('fs');
+import { AvailableItemsVariable, YoutubePlaylistItem } from "./types";
 const axios = require("axios").default;
 import { logger } from "./logger";
-
-let items: string[] = [];
+import { modules, parameters } from "./main";
+import { addItem, saveList } from "./db";
+let quota:number=0;
+let items: YoutubePlaylistItem[] = [];
 export type IntegrationDefinition<
     Params extends FirebotParams = FirebotParams
 > = {
@@ -59,7 +60,7 @@ export let secret: client = {
 }
 
 let scriptModules: ScriptModules;
-export function setScriptModules(modules: ScriptModules){
+export function setScriptModules(modules: ScriptModules) {
     scriptModules = modules
 }
 
@@ -94,7 +95,8 @@ export function genIntegration() {
     integration = new YoutubeIntegration();
 }
 
-export async function getYoutubeListItems(accessToken: any, playlistId: any): Promise<string[]> {
+export async function getYoutubeListItems(accessToken: any, playlistId: any): Promise<YoutubePlaylistItem[]> {
+    items = [];
     let pageToken: string;
 
     if (await youtubeIsConnected(accessToken) !== true) {
@@ -113,13 +115,20 @@ export async function getYoutubeListItems(accessToken: any, playlistId: any): Pr
                         "pageToken": pageToken
                     }
                 });
-            response.data.items.forEach((item: { status: { privacyStatus: string; }; contentDetails: { videoId: string; }; }) => {
+            logger.error(response.data);
+            response.data.items.forEach((item: { id: string, status: { privacyStatus: string; }; contentDetails: { videoId: string; }; }) => {
                 if (item.status.privacyStatus = "public") {
-                    items.push(item.contentDetails.videoId)
+                    items.push({
+                        videoId: item.contentDetails.videoId,
+                        playlistItemId: item.id
+                    })
+                } else {
+                    deleteYoutubeListItem(accessToken, item.id)
                 }
             });
             pageToken = response.data.nextPageToken;
-
+            quota++;
+            
         } catch (error) {
             logger.error("Failed to get list for youtube", error.message);
             logger.error("Failed to get list from youtube", error.code);
@@ -127,8 +136,9 @@ export async function getYoutubeListItems(accessToken: any, playlistId: any): Pr
         }
     }
     while (pageToken);
-
     logger.error("youtubeREPLY: ", items)
+    saveList(playlistId, items)
+    chatFeedAlert(`Google quota used ${quota}`)
     return items
 };
 
@@ -160,7 +170,12 @@ export async function addYoutubeListItem(accessToken: any, playlistId: any, item
             }
         })
         logger.error("youtubeREPLY: ", response.data)
-
+        quota = quota + 50;
+        chatFeedAlert(`Google quota used ${quota}`)
+        addItem(playlistId, {
+            videoId: response.data.snippet.resourceId.videoId,
+            playlistItemId: response.data.id
+        })
     } catch (error) {
         logger.error("Failed to get list from youtube", error.message);
         logger.error("Failed to get list from youtube", error.code);
@@ -168,6 +183,34 @@ export async function addYoutubeListItem(accessToken: any, playlistId: any, item
     return null;
 };
 
+export async function deleteYoutubeListItem(accessToken: any, playlistItemId: string): Promise<{
+    itemId: string,
+    playlistId: string
+}> {
+
+    if (await youtubeIsConnected(accessToken) !== true) {
+        accessToken = await integration.refreshToken();
+    }
+
+    try {
+        const response = await axios.delete('https://www.googleapis.com/youtube/v3/playlistItems?', {
+            params: {
+                'id': playlistItemId
+            },
+            headers: {
+                'Authorization': 'Bearer ' + accessToken,
+                'Content-Type': 'application/json'
+            }
+        })
+        logger.error("youtubeREPLY: Item Deleted")
+        quota = quota+50;
+        chatFeedAlert(`Google quota used ${quota}`)
+    } catch (error) {
+        logger.error("Failed to get list from youtube", error.message);
+        logger.error("Failed to get list from youtube", error.code);
+    }
+    return null;
+};
 export async function youtubeGetPlayLists(accessToken: any): Promise<{
     itemId: string,
     playlistId: string
@@ -180,6 +223,8 @@ export async function youtubeGetPlayLists(accessToken: any): Promise<{
         let response = await (await fetch('https://www.googleapis.com/youtube/v3/playlists?part=snippet,id&mine=true', { headers })).json();
 
         logger.error("youtubeREPLY: ", response)
+        quota++;
+        chatFeedAlert(`Google quota used ${quota}`)
         return response
     } catch (error) {
         logger.error("Failed to get playlists from youtube", error.message);
@@ -189,10 +234,40 @@ export async function youtubeGetPlayLists(accessToken: any): Promise<{
 };
 
 export async function youtubeIsConnected(accessToken: any): Promise<boolean> {
-        const headers = { 'Authorization': 'Bearer ' + accessToken }; // auth header with bearer token
-        let res = await fetch('https://www.googleapis.com/youtube/v3/playlists?part=snippet,id&mine=true', { headers });
-        return res.ok; 
+    const headers = { 'Authorization': 'Bearer ' + accessToken }; // auth header with bearer token
+    let res = await fetch('https://www.googleapis.com/youtube/v3/playlists?part=snippet,id&mine=true', { headers });
+    quota++;
+    chatFeedAlert(`Google quota used ${quota}`)
+    return res.ok;
 };
+
+export async function chatFeedAlert(message: string) {
+    if (parameters.alertMessage) {
+        const data = await modules.effectRunner.processEffects({
+            trigger: {
+                type: "custom_script",
+                metadata: {
+                    username: "script"
+                }
+            },
+            // effects: [
+            //     { "id": "e6bac140-1894-11ef-a992-091f0a9405f6", "type": "firebot:chat-feed-alert", "active": true, message }
+            // ]
+            effects: {
+                id: Date.now(),
+                list: [
+                    { "id": "e6bac140-1894-11ef-a992-091f0a9405f6", "type": "firebot:chat-feed-alert", "active": true, message }
+                ]
+            }
+        });
+
+        //data.outputs
+        //data.success
+        //data.stopEffectExecution
+
+        //{ "id": "e6bac140-1894-11ef-a992-091f0a9405f6", "type": "firebot:chat-feed-alert", "active": true, "message": "sadasda" }
+    }
+}
 
 class YoutubeIntegration extends EventEmitter {
     auth: any;
@@ -206,7 +281,7 @@ class YoutubeIntegration extends EventEmitter {
         this.integrationManager = scriptModules.integrationManager
     }
 
-    init() {}
+    init() { }
 
     async connect(integrationData: any) {
         const { auth } = integrationData;
@@ -224,6 +299,8 @@ class YoutubeIntegration extends EventEmitter {
 
         this.emit("connected", this.definition.id);
         this.connected = true;
+        const itemsList = await getYoutubeListItems(token, parameters.playListId);
+        logger.error('data: ', itemsList);
     }
 
     disconnect() {
@@ -238,18 +315,14 @@ class YoutubeIntegration extends EventEmitter {
         logger.error('InSide Link', this.definition.id);
         logger.error('data: ', auth);
 
-        /*
         let token = auth?.access_token
         if (await youtubeIsConnected(token) !== true) {
             token = await this.refreshToken();
         }
-        const itemsList = await getYoutubeListItems(token, "PLyg0JJEOdlaibF4jV6JzMKQ0FcYXee0oj");
-        logger.error('data: ', itemsList); 
-        */
     }
 
-    unlink() {}
-    
+    unlink() { }
+
     // Doing this here because of a bug in Firebot where it isn't refreshing automatically
     async refreshToken(): Promise<string> {
         try {
@@ -265,7 +338,7 @@ class YoutubeIntegration extends EventEmitter {
                     const int = this.integrationManager.getIntegrationById("youtube");
                     logger.debug(int.integration.auth.refresh_token)
                     // @ts-ignore
-                    response.data["refresh_token"]= int.integration.auth.refresh_token
+                    response.data["refresh_token"] = int.integration.auth.refresh_token
                     this.integrationManager.saveIntegrationAuth(int, response.data);
                     return response.data.access_token;
                 }

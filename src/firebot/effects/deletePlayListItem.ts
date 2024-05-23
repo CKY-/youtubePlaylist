@@ -1,23 +1,22 @@
 "use strict";
 import { Firebot } from "@crowbartools/firebot-custom-scripts-types";
-import { addYoutubeListItem } from "../../integrationGoogle";
+import { deleteYoutubeListItem } from "../../integrationGoogle";
 import { modules } from "../../main";
-import { getList } from "../../db";
+import { deleteItem, getList } from "../../db";
 /**
 * The Trigger Hotkey Effect
 */
-export const addYoutubeListItemEffect: Firebot.EffectType<{
+export const deleteYoutubeListItemEffect: Firebot.EffectType<{
     itemId: string,
-    playlistId: string,
-    allow_duplicates: boolean
+    playlistId: string
 }> = {
     /**
     * The definition of the Effect
     */
     definition: {
-        id: "youtube:add-item",
-        name: "youtube add item",
-        description: "adds an item to the supplied playlist",
+        id: "youtube:delete-item",
+        name: "youtube delete item",
+        description: "deletes an item to the supplied playlist",
         icon: "fad fa-keyboard",
         categories: ["common"],
     },
@@ -33,14 +32,8 @@ export const addYoutubeListItemEffect: Firebot.EffectType<{
         </eos-container>
 
         <eos-container header="Song Id" pad-top="true">
-            <p class="muted">this is the song you want to add</p>
+            <p class="muted">this is the song you want to delete</p>
             <input ng-model="effect.itemId" type="text" class="form-control" id="chat-text-setting" placeholder="Enter Song ID" menu-position="under" replace-variables/>
-        </eos-container>
-        <eos-container header="Allow Duplicates" pad-top="true">
-            <label class="control-fb control--checkbox"> Allow Duplicates <tooltip text="'allow duplicate tracks to be added'"></tooltip>
-                <input type="checkbox" ng-model="effect.allow_duplicates">
-                <div class="control__indicator"></div>
-            </label>
         </eos-container>
     `,
     /**
@@ -77,14 +70,17 @@ export const addYoutubeListItemEffect: Firebot.EffectType<{
         } else {
             itemid = event.effect.itemId;
         }
+
         let integration = modules.integrationManager.getIntegrationDefinitionById("youtube");
-        if (!event.effect.allow_duplicates) {
-            let list = getList(event.effect.playlistId);
-            if (list.findIndex(item => item.videoId === itemid) >= 0) {
-                return true;
-            }
+        let list = getList(event.effect.playlistId);
+
+        const item = list.find(item => item.videoId === itemid);
+
+        if (item !== undefined) {
+            await deleteYoutubeListItem(integration.auth["access_token"], item.playlistItemId);
+            deleteItem(event.effect.playlistId, itemid);
         }
-        await addYoutubeListItem(integration.auth["access_token"], event.effect.playlistId, event.effect.itemId);
+
         return true;
     }
 };

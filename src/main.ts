@@ -1,13 +1,17 @@
 import { Firebot, ScriptModules } from "@crowbartools/firebot-custom-scripts-types";
 import { genDef, genIntegration, integration, secret, setScriptModules } from "./integrationGoogle";
 import { initLogger, logger } from "./logger";
-import { setupFrontendListeners } from "./firebot/communicator";
+//import { setupFrontendListeners } from "./firebot/communicator";
 import { getYoutubeListItemsVariable } from "./firebot/variables/playListItems";
 import { addYoutubeListItemEffect } from "./firebot/effects/addPlaylistItem";
+import { deleteYoutubeListItemEffect } from "./firebot/effects/deletePlayListItem";
+
 
 interface Params {
   clientId: string;
   clientSecret: string;
+  playListId: string;
+  alertMessage:boolean;
 }
 
 const script: Firebot.CustomScript<Params> = {
@@ -34,6 +38,17 @@ const script: Firebot.CustomScript<Params> = {
         description: "clientSecret",
         secondaryDescription: "Enter a client secret here",
       },
+      playListId: {
+        type: "string",
+        default: "",
+        description: "Default Playlist Id",
+        secondaryDescription: "Enter a playlist id here",
+      },
+      alertMessage: {
+        type: "boolean",
+        default: false,
+        title: "Show chat feed alerts with quota usage (this is not accurate and should only be used as a guide)",
+      },
     };
   },
   parametersUpdated(params: Params) {
@@ -56,12 +71,14 @@ const script: Firebot.CustomScript<Params> = {
     setScriptModules(modules);
     let definition = genDef();
     genIntegration();
+    
 
-    setupFrontendListeners(frontendCommunicator);
+    //setupFrontendListeners(frontendCommunicator);
     integrationManager.registerIntegration({ definition, integration });
     
     replaceVariableManager.registerReplaceVariable(getYoutubeListItemsVariable);
     effectManager.registerEffect(addYoutubeListItemEffect);
+    effectManager.registerEffect(deleteYoutubeListItemEffect);
   },
   stop: () => {
     integration.disconnect();
