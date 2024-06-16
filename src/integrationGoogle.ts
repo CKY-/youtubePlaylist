@@ -8,7 +8,7 @@ const axios = require("axios").default;
 import { logger } from "./logger";
 import { modules, parameters } from "./main";
 import { addItem, saveList } from "./db";
-let quota:number=0;
+let quota: number = 0;
 let items: YoutubePlaylistItem[] = [];
 export type IntegrationDefinition<
     Params extends FirebotParams = FirebotParams
@@ -69,7 +69,7 @@ export function genDef(): IntegrationDefinition {
         id: "youtube",
         name: "youtube",
         description: "load and update playlist information",
-        connectionToggle: true,
+        connectionToggle: false,
         linkType: "auth",
         settingCategories: {
         },
@@ -128,7 +128,7 @@ export async function getYoutubeListItems(accessToken: any, playlistId: any): Pr
             });
             pageToken = response.data.nextPageToken;
             quota++;
-            
+
         } catch (error) {
             logger.error("Failed to get list for youtube", error.message);
             logger.error("Failed to get list from youtube", error.code);
@@ -203,7 +203,7 @@ export async function deleteYoutubeListItem(accessToken: any, playlistItemId: st
             }
         })
         logger.error("youtubeREPLY: Item Deleted")
-        quota = quota+50;
+        quota = quota + 50;
         chatFeedAlert(`Google quota used ${quota}`)
     } catch (error) {
         logger.error("Failed to get list from youtube", error.message);
@@ -250,9 +250,6 @@ export async function chatFeedAlert(message: string) {
                     username: "script"
                 }
             },
-            // effects: [
-            //     { "id": "e6bac140-1894-11ef-a992-091f0a9405f6", "type": "firebot:chat-feed-alert", "active": true, message }
-            // ]
             effects: {
                 id: Date.now(),
                 list: [
@@ -260,53 +257,36 @@ export async function chatFeedAlert(message: string) {
                 ]
             }
         });
-
-        //data.outputs
-        //data.success
-        //data.stopEffectExecution
-
-        //{ "id": "e6bac140-1894-11ef-a992-091f0a9405f6", "type": "firebot:chat-feed-alert", "active": true, "message": "sadasda" }
     }
 }
 
 class YoutubeIntegration extends EventEmitter {
     auth: any;
-    connected: boolean;
     definition: IntegrationDefinition
 
     constructor() {
         super();
-        this.connected = false;
         this.definition = genDef()
         this.integrationManager = scriptModules.integrationManager
     }
 
-    init() { }
-
-    async connect(integrationData: any) {
+    async init(integrationData: any) {
         const { auth } = integrationData;
         this.auth = auth;
-        let token = auth?.access_token
+        // let token = auth?.access_token
+        // if (auth != null) {
+        //     if (await youtubeIsConnected(token) !== true) {
+        //         token = await this.refreshToken();
+        //     }
 
-        if (await youtubeIsConnected(token) !== true) {
-            token = await this.refreshToken();
-        }
-
-        if (token == null || token === "") {
-            this.emit("disconnected", this.definition.id);
-            return;
-        }
-
-        this.emit("connected", this.definition.id);
-        this.connected = true;
-        const itemsList = await getYoutubeListItems(token, parameters.playListId);
-        logger.error('data: ', itemsList);
+        //     const itemsList = await getYoutubeListItems(token, parameters.playListId);
+        //     logger.error('data: ', itemsList);
+        // }
     }
 
-    disconnect() {
-        this.connected = false;
-        this.emit("disconnected", this.definition.id);
-    }
+    async connect() { }
+
+    disconnect() { }
 
     async link(linkData: { auth: any; }) {
         const { auth } = linkData;
